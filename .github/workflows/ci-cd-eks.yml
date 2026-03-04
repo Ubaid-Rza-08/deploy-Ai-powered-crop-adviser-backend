@@ -154,10 +154,12 @@ jobs:
           kubectl rollout status deployment/ai-service \
             -n ${{ env.NAMESPACE }} --timeout=480s
 
-      # ── Step 3: Deploy frontend ───────────────────────────────────────────
+      # ── Step 3: Deploy frontend (force new image pull every time) ─────────
       - name: Deploy frontend
         run: |
           kubectl apply -f k8s/frontend/
+          kubectl rollout restart deployment/frontend \
+            -n ${{ env.NAMESPACE }}
           kubectl rollout status deployment/frontend \
             -n ${{ env.NAMESPACE }} --timeout=120s
 
