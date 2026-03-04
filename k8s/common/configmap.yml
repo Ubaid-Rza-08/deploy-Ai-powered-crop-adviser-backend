@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gemini-config
+  namespace: gemini-crop-adviser
+data:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:19092"
+  SPRING_DATA_REDIS_HOST: "redis"
+  SPRING_DATA_REDIS_PORT: "6379"
+  SPRING_PROFILES_ACTIVE: "docker"
+  FARMER_PORT: "8080"
+  PRODUCER_PORT: "8081"
+  AI_SERVICE_PORT: "8082"
+  OTP_EXPIRATION_MINUTES: "5"
+  SMS_MOCK_ENABLED: "true"
+  JWT_ACCESS_TOKEN_MS: "3600000"
+  JWT_REFRESH_TOKEN_MS: "604800000"
+  GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+  ELEVENLABS_API_URL: "https://api.elevenlabs.io/v1"

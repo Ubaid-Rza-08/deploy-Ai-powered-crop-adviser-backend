@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agriculture-service
+  namespace: gemini-crop-adviser
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agriculture-service
+  template:
+    metadata:
+      labels:
+        app: agriculture-service
+    spec:
+      containers:
+        - name: agriculture-service
+          image: ubaidrza/gemini-agriculture:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: gemini-config
+            - secretRef:
+                name: gemini-secrets
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"

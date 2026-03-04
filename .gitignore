@@ -1,0 +1,51 @@
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Maven build output ───────────────────────────────────────────────────────
+**/target/
+**/*.jar
+**/*.war
+**/*.class
+
+# ─── Node / React ─────────────────────────────────────────────────────────────
+**/node_modules/
+**/build/
+**/.npm
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.idea/
+**/*.iml
+.vscode/
+**/*.classpath
+**/*.project
+**/*.factorypath
+**/.settings/
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+**/*.log
+**/logs/
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+# (keep Dockerfile and docker-compose tracked, ignore runtime leftovers)
+**/docker-compose.override.yml
+
+# ─── Test reports ─────────────────────────────────────────────────────────────
+**/surefire-reports/
+**/failsafe-reports/
+
+# ─── Terraform ────────────────────────────────────────────────────────────────
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
