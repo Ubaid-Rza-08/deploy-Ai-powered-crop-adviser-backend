@@ -29,7 +29,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # ── Agriculture Service ────────────────────────────────────────────────
       - name: Build & Push agriculture-service
         uses: docker/build-push-action@v5
         with:
@@ -38,7 +37,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-agriculture:latest
 
-      # ── Producer Service ───────────────────────────────────────────────────
       - name: Build & Push producer-service
         uses: docker/build-push-action@v5
         with:
@@ -47,7 +45,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-producer:latest
 
-      # ── AI Service ─────────────────────────────────────────────────────────
       - name: Build & Push ai-service
         uses: docker/build-push-action@v5
         with:
@@ -56,7 +53,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-ai-service:latest
 
-      # ── Frontend — inject real ELB URLs at build time ──────────────────────
       - name: Build & Push frontend
         uses: docker/build-push-action@v5
         with:
@@ -117,6 +113,28 @@ jobs:
             --dry-run=client \
             -o yaml | kubectl apply -f -
 
+      # ── Step 1: Deploy infrastructure (Zookeeper → Kafka → Redis) ───────────
+      - name: Deploy Zookeeper
+        run: |
+          kubectl apply -f k8s/kafka/zookeeper.yml
+          kubectl rollout status deployment/zookeeper \
+            -n ${{ env.NAMESPACE }} --timeout=120s
+
+      - name: Deploy Kafka
+        run: |
+          kubectl apply -f k8s/kafka/kafka.yml
+          kubectl rollout status deployment/kafka \
+            -n ${{ env.NAMESPACE }} --timeout=120s
+          echo "⏳ Waiting 20s for Kafka to be fully ready..."
+          sleep 20
+
+      - name: Deploy Redis
+        run: |
+          kubectl apply -f k8s/kafka/redis.yml
+          kubectl rollout status deployment/redis \
+            -n ${{ env.NAMESPACE }} --timeout=60s
+
+      # ── Step 2: Deploy Spring Boot services ─────────────────────────────────
       - name: Deploy agriculture-service
         run: |
           kubectl apply -f k8s/agriculture/
@@ -129,19 +147,20 @@ jobs:
           kubectl rollout status deployment/producer-service \
             -n ${{ env.NAMESPACE }} --timeout=300s
 
-      # ai-service needs Kafka ready — give it extra time
       - name: Deploy ai-service
         run: |
           kubectl apply -f k8s/ai-service/
           kubectl rollout status deployment/ai-service \
             -n ${{ env.NAMESPACE }} --timeout=480s
 
+      # ── Step 3: Deploy frontend ───────────────────────────────────────────
       - name: Deploy frontend
         run: |
           kubectl apply -f k8s/frontend/
           kubectl rollout status deployment/frontend \
             -n ${{ env.NAMESPACE }} --timeout=120s
 
+      # ── Step 4: Print live URLs ───────────────────────────────────────────
       - name: Print all LoadBalancer URLs
         run: |
           echo ""
