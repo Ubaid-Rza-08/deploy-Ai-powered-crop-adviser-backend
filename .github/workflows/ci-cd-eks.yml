@@ -115,25 +115,25 @@ jobs:
         run: |
           kubectl apply -f k8s/agriculture/
           kubectl rollout status deployment/agriculture-service \
-            -n ${{ env.NAMESPACE }} --timeout=180s
+            -n ${{ env.NAMESPACE }} --timeout=300s
 
       - name: Deploy producer-service
         run: |
           kubectl apply -f k8s/producer/
           kubectl rollout status deployment/producer-service \
-            -n ${{ env.NAMESPACE }} --timeout=180s
+            -n ${{ env.NAMESPACE }} --timeout=300s
 
       - name: Deploy ai-service
         run: |
           kubectl apply -f k8s/ai-service/
           kubectl rollout status deployment/ai-service \
-            -n ${{ env.NAMESPACE }} --timeout=180s
+            -n ${{ env.NAMESPACE }} --timeout=300s
 
       - name: Deploy frontend
         run: |
           kubectl apply -f k8s/frontend/
           kubectl rollout status deployment/frontend \
-            -n ${{ env.NAMESPACE }} --timeout=120s
+            -n ${{ env.NAMESPACE }} --timeout=300s
 
       - name: Print all LoadBalancer URLs
         run: |
