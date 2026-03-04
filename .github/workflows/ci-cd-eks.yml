@@ -60,6 +60,7 @@ jobs:
           file: ./dharti-mitra-frontend/Dockerfile
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-frontend:latest
+          no-cache: true
           build-args: |
             REACT_APP_BASE_URL=${{ secrets.AGRICULTURE_ELB_URL }}
             REACT_APP_SOIL_ANALYSIS_URL=${{ secrets.PRODUCER_ELB_URL }}

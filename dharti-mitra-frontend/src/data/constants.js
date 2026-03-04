@@ -2,11 +2,11 @@
 // API URLs are injected at Docker build time via REACT_APP_* environment variables.
 // For local dev they fall back to localhost.
 export const API_CONFIG = {
-  BASE_URL:              `${process.env.REACT_APP_BASE_URL || 'http://localhost:8080'}/api/v1`,
-  SOIL_ANALYSIS_URL:     `${process.env.REACT_APP_SOIL_ANALYSIS_URL || 'http://localhost:8081'}/api/producer/soil-analysis-form`,
-  FERTILIZER_ANALYSIS_URL: `${process.env.REACT_APP_FERTILIZER_URL || 'http://localhost:8082'}/api/fertilizer/analyze`,
-  HEALTH_CARD_ANALYSIS_URL: `${process.env.REACT_APP_HEALTH_CARD_URL || 'http://localhost:8082'}/api/fertilizer/analyze-health-card`,
-  CHATBOT_URL:           `${process.env.REACT_APP_CHATBOT_URL || 'http://localhost:8082'}/api/agriculture/chat`,
+  BASE_URL:                 `${process.env.REACT_APP_BASE_URL?.trim()              || 'http://localhost:8080'}/api/v1`,
+  SOIL_ANALYSIS_URL:        `${process.env.REACT_APP_SOIL_ANALYSIS_URL?.trim()     || 'http://localhost:8081'}/api/producer/soil-analysis-form`,
+  FERTILIZER_ANALYSIS_URL:  `${process.env.REACT_APP_FERTILIZER_URL?.trim()        || 'http://localhost:8082'}/api/fertilizer/analyze`,
+  HEALTH_CARD_ANALYSIS_URL: `${process.env.REACT_APP_HEALTH_CARD_URL?.trim()       || 'http://localhost:8082'}/api/fertilizer/analyze-health-card`,
+  CHATBOT_URL:              `${process.env.REACT_APP_CHATBOT_URL?.trim()           || 'http://localhost:8082'}/api/agriculture/chat`,
 };
 
 export const LANGUAGES = [
