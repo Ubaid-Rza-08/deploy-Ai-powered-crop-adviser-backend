@@ -1,12 +1,10 @@
-version: "3.8"
-
 services:
-  # --- Infrastructure ---
+
+  # ─── Infrastructure ──────────────────────────────────────────────────────────
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.3
     container_name: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -24,10 +22,15 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - agriculture-network
     restart: unless-stopped
@@ -39,17 +42,37 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    restart: unless-stopped
-    command: [ "redis-server", "--appendonly", "yes" ]
+    command: ["redis-server", "--appendonly", "yes"]
     networks:
       - agriculture-network
+    restart: unless-stopped
 
-  # --- Agriculture Services (Using Docker Hub Images) ---
+  # ─── Spring Boot Services ────────────────────────────────────────────────────
+
   farmer-service:
-    image: ubaidrza/farmer:v1  # Updated image name
+    build:
+      context: ./Agriculture
+      dockerfile: Dockerfile
     container_name: farmer-service
     ports:
-      - "8080:8080"
+      - "${FARMER_PORT}:8080"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT}
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TOKEN_MS: ${JWT_ACCESS_TOKEN_MS}
+      JWT_REFRESH_TOKEN_MS: ${JWT_REFRESH_TOKEN_MS}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      OTP_EXPIRATION_MINUTES: ${OTP_EXPIRATION_MINUTES}
+      SMS_MOCK_ENABLED: ${SMS_MOCK_ENABLED}
     depends_on:
       - redis
     networks:
@@ -57,32 +80,68 @@ services:
     restart: unless-stopped
 
   producer-service:
-    image: ubaidrza/producer:v1  # Updated image name
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
     container_name: producer-service
     ports:
-      - "8081:8081"
+      - "${PRODUCER_PORT}:8081"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - agriculture-network
     restart: unless-stopped
 
   ai-service:
-    image: ubaidrza/ai-service:v1  # Updated image name
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
     container_name: ai-service
     ports:
-      - "8082:8082"
+      - "${AI_SERVICE_PORT}:8082"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_URL: ${GEMINI_API_URL}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      ELEVENLABS_API_URL: ${ELEVENLABS_API_URL}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID}
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - agriculture-network
     restart: unless-stopped
 
-# --- Global Configurations ---
+  # ─── React Frontend ──────────────────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: ./dharti-mitra-frontend
+      dockerfile: Dockerfile
+    container_name: dharti-mitra-frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      - farmer-service
+      - producer-service
+      - ai-service
+    networks:
+      - agriculture-network
+    restart: unless-stopped
+
 networks:
   agriculture-network:
     driver: bridge
-    name: agriculture-management-network
 
 volumes:
   redis_data:

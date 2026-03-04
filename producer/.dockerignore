@@ -1,0 +1,35 @@
+# Maven build output
+target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+*.factorypath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Environment
+.env
+.env.*
+
+# Test reports
+**/surefire-reports/
+**/failsafe-reports/

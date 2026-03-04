@@ -1,0 +1,46 @@
+spring:
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: agriculture-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: '*'
+            use:
+              type:
+                headers: false
+            value:
+              default:
+                type: com.ubaid.ai_service.model.SoilData
+      auto-offset-reset: earliest
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+    url: ${GEMINI_API_URL}
+
+elevenlabs:
+  api:
+    key: ${ELEVENLABS_API_KEY}
+    url: ${ELEVENLABS_API_URL}
+  voice:
+    id: ${ELEVENLABS_VOICE_ID}
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.ubaid.ai_service: INFO
+    org.apache.kafka: WARN
+    org.springframework.web.reactive.function.client: WARN
+    org.springframework.kafka: INFO
