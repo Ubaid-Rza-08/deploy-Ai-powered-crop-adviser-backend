@@ -11,7 +11,7 @@ env:
   DOCKER_USERNAME: ubaidrza
 
 jobs:
-  # ─── Job 1: Build & Push all Docker images to Docker Hub ─────────────────────
+  # ─── Job 1: Build & Push all Docker images ────────────────────────────────
   build-and-push:
     name: Build & Push Images
     runs-on: ubuntu-latest
@@ -29,43 +29,49 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # ── Agriculture Service ──────────────────────────────────────────────────
+      # ── Agriculture Service ────────────────────────────────────────────────
       - name: Build & Push agriculture-service
         uses: docker/build-push-action@v5
         with:
           context: ./Agriculture
-          dockerfile: ./Agriculture/Dockerfile
+          file: ./Agriculture/Dockerfile
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-agriculture:latest
 
-      # ── Producer Service ─────────────────────────────────────────────────────
+      # ── Producer Service ───────────────────────────────────────────────────
       - name: Build & Push producer-service
         uses: docker/build-push-action@v5
         with:
           context: ./producer
-          dockerfile: ./producer/Dockerfile
+          file: ./producer/Dockerfile
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-producer:latest
 
-      # ── AI Service ───────────────────────────────────────────────────────────
+      # ── AI Service ─────────────────────────────────────────────────────────
       - name: Build & Push ai-service
         uses: docker/build-push-action@v5
         with:
           context: ./ai-service
-          dockerfile: ./ai-service/Dockerfile
+          file: ./ai-service/Dockerfile
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-ai-service:latest
 
-      # ── Frontend ─────────────────────────────────────────────────────────────
+      # ── Frontend — inject real ELB URLs at build time ──────────────────────
       - name: Build & Push frontend
         uses: docker/build-push-action@v5
         with:
           context: ./dharti-mitra-frontend
-          dockerfile: ./dharti-mitra-frontend/Dockerfile
+          file: ./dharti-mitra-frontend/Dockerfile
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/gemini-frontend:latest
+          build-args: |
+            REACT_APP_BASE_URL=${{ secrets.AGRICULTURE_ELB_URL }}
+            REACT_APP_SOIL_ANALYSIS_URL=${{ secrets.PRODUCER_ELB_URL }}
+            REACT_APP_FERTILIZER_URL=${{ secrets.AI_ELB_URL }}
+            REACT_APP_HEALTH_CARD_URL=${{ secrets.AI_ELB_URL }}
+            REACT_APP_CHATBOT_URL=${{ secrets.AI_ELB_URL }}
 
-  # ─── Job 2: Deploy to AWS EKS ─────────────────────────────────────────────
+  # ─── Job 2: Deploy to AWS EKS ──────────────────────────────────────────────
   deploy-to-eks:
     name: Deploy to EKS
     runs-on: ubuntu-latest
@@ -123,17 +129,18 @@ jobs:
           kubectl rollout status deployment/producer-service \
             -n ${{ env.NAMESPACE }} --timeout=300s
 
+      # ai-service needs Kafka ready — give it extra time
       - name: Deploy ai-service
         run: |
           kubectl apply -f k8s/ai-service/
           kubectl rollout status deployment/ai-service \
-            -n ${{ env.NAMESPACE }} --timeout=300s
+            -n ${{ env.NAMESPACE }} --timeout=480s
 
       - name: Deploy frontend
         run: |
           kubectl apply -f k8s/frontend/
           kubectl rollout status deployment/frontend \
-            -n ${{ env.NAMESPACE }} --timeout=300s
+            -n ${{ env.NAMESPACE }} --timeout=120s
 
       - name: Print all LoadBalancer URLs
         run: |
@@ -141,10 +148,8 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  🌐 Live Service URLs (AWS ELB)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "⏳ Waiting for ELBs to be assigned (up to 60s)..."
+          echo "⏳ Waiting for ELBs to be assigned..."
           sleep 60
-          echo ""
 
           FRONTEND=$(kubectl get svc frontend -n ${{ env.NAMESPACE }} \
             -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
@@ -155,16 +160,16 @@ jobs:
           AI=$(kubectl get svc ai-service -n ${{ env.NAMESPACE }} \
             -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
 
+          echo ""
           echo "  🌿 Frontend         → http://${FRONTEND}"
           echo "  🔐 Agriculture Svc  → http://${AGRICULTURE}:8080"
           echo "  📡 Producer Svc     → http://${PRODUCER}:8081"
           echo "  🤖 AI Service       → http://${AI}:8082"
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-      - name: Show pod status
-        run: |
           echo ""
+          echo "📋 Pod Status:"
           kubectl get pods -n ${{ env.NAMESPACE }}
           echo ""
+          echo "📋 Service Status:"
           kubectl get svc -n ${{ env.NAMESPACE }}
